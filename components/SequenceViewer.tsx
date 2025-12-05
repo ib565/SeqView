@@ -5,7 +5,6 @@ import SequenceRow from './SequenceRow';
 import TranslationControls from './TranslationControls';
 import AnnotationForm from './AnnotationForm';
 import AnnotationList from './AnnotationList';
-import AnnotationTrack from './AnnotationTrack';
 import { SequenceType, Selection, Annotation } from '@/types';
 import {
   splitIntoCodonGroups,
@@ -145,7 +144,7 @@ export default function SequenceViewer({
   );
 
   /**
-   * Scroll to an annotation's position and start editing
+   * Scroll to an annotation's position
    */
   const handleAnnotationClick = useCallback((annotation: Annotation) => {
     // Find which row contains the start of the annotation
@@ -205,34 +204,26 @@ export default function SequenceViewer({
           onFrameChange={setReadingFrame}
         />
 
-        {/* Sequence rows with codon groups and annotation tracks */}
+        {/* Sequence rows with integrated annotation tracks */}
         <div className="space-y-3">
           {rows.map((rowGroups, index) => {
             const rowStart = getRowStartPositionFromGroups(rowGroups);
             const rowEnd = getRowEndPosition(rowGroups);
             
             return (
-              <div key={index}>
-                {/* Sequence row */}
-                <SequenceRow
-                  ref={(ref) => setRowRef(index, ref)}
-                  codonGroups={rowGroups}
-                  startPosition={rowStart}
-                  type={type}
-                  showTranslation={showTranslation}
-                  selection={selection}
-                  onBaseClick={handleBaseClick}
-                />
-                
-                {/* Annotation track below this row (Benchling-style) */}
-                <AnnotationTrack
-                  annotations={annotations}
-                  rowStart={rowStart}
-                  rowEnd={rowEnd}
-                  basesPerRow={BASES_PER_ROW}
-                  onAnnotationClick={handleAnnotationClick}
-                />
-              </div>
+              <SequenceRow
+                key={index}
+                ref={(ref) => setRowRef(index, ref)}
+                codonGroups={rowGroups}
+                startPosition={rowStart}
+                endPosition={rowEnd}
+                type={type}
+                showTranslation={showTranslation}
+                selection={selection}
+                onBaseClick={handleBaseClick}
+                annotations={annotations}
+                onAnnotationClick={handleAnnotationClick}
+              />
             );
           })}
         </div>

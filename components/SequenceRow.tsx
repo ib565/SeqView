@@ -2,32 +2,38 @@
 
 import { forwardRef } from 'react';
 import CodonGroup from './CodonGroup';
-import { SequenceType, Selection } from '@/types';
+import AnnotationTrack from './AnnotationTrack';
+import { SequenceType, Selection, Annotation } from '@/types';
 import { CodonGroup as CodonGroupType } from '@/lib/translation';
 
 interface SequenceRowProps {
   codonGroups: CodonGroupType[];
   startPosition: number;
+  endPosition: number;
   type: SequenceType;
   showTranslation: boolean;
   selection: Selection;
   onBaseClick: (position: number) => void;
+  annotations: Annotation[];
+  onAnnotationClick: (annotation: Annotation) => void;
 }
 
 /**
- * Single row displaying position number and codon groups
- * When translation is enabled, amino acids are shown below codons
- * Supports forwardRef for scroll-to-position functionality
+ * Single row displaying position number, codon groups, and annotation track
+ * The annotation track is inside the same container as codons for accurate width matching
  */
 const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
   function SequenceRow(
     {
       codonGroups,
       startPosition,
+      endPosition,
       type,
       showTranslation,
       selection,
       onBaseClick,
+      annotations,
+      onAnnotationClick,
     },
     ref
   ) {
@@ -38,21 +44,32 @@ const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
           {startPosition}
         </div>
         
-        {/* Codon groups with spacing */}
-        <div className="flex gap-1 flex-wrap items-start">
-          {codonGroups.map((group, index) => (
-            <CodonGroup
-              key={`${group.position}-${index}`}
-              bases={group.bases}
-              aminoAcid={group.aminoAcid}
-              position={group.position}
-              isOrphan={group.isOrphan}
-              type={type}
-              showTranslation={showTranslation}
-              selection={selection}
-              onBaseClick={onBaseClick}
-            />
-          ))}
+        {/* Codon groups + annotation track in same container */}
+        <div className="relative">
+          {/* Codon groups */}
+          <div className="flex gap-1 flex-wrap items-start">
+            {codonGroups.map((group, index) => (
+              <CodonGroup
+                key={`${group.position}-${index}`}
+                bases={group.bases}
+                aminoAcid={group.aminoAcid}
+                position={group.position}
+                isOrphan={group.isOrphan}
+                type={type}
+                showTranslation={showTranslation}
+                selection={selection}
+                onBaseClick={onBaseClick}
+              />
+            ))}
+          </div>
+          
+          {/* Annotation track - shares container width with codons */}
+          <AnnotationTrack
+            annotations={annotations}
+            rowStart={startPosition}
+            rowEnd={endPosition}
+            onAnnotationClick={onAnnotationClick}
+          />
         </div>
       </div>
     );

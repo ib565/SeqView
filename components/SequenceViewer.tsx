@@ -391,6 +391,7 @@ export default function SequenceViewer({
                 onEditAnnotation={readOnly ? undefined : handleEditAnnotation}
                 onDeleteAnnotation={readOnly ? undefined : handleDeleteAnnotation}
                 readOnly={readOnly}
+                editToken={editToken}
               />
             </div>
           </div>

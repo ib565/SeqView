@@ -83,6 +83,23 @@ export interface SequenceWithAnnotations {
   annotations: DbAnnotation[];
 }
 
+// Comment types
+export interface Comment {
+  id: string;
+  annotation_id: string;
+  author: string;
+  text: string;
+  created_at: string;
+}
+
+export interface DbComment {
+  id: string;
+  annotation_id: string;
+  author: string;
+  text: string;
+  created_at: string;
+}
+
 // Helper functions to convert between client and DB types
 export function dbAnnotationToAnnotation(dbAnn: DbAnnotation): Annotation {
   return {
@@ -106,5 +123,25 @@ export function annotationToDbAnnotation(
     label: ann.label,
     color: ann.color,
     type: ann.type || null,
+  };
+}
+
+export function dbCommentToComment(dbComment: DbComment): Comment {
+  return {
+    id: dbComment.id,
+    annotation_id: dbComment.annotation_id,
+    author: dbComment.author,
+    text: dbComment.text,
+    created_at: dbComment.created_at,
+  };
+}
+
+export function commentToDbComment(
+  comment: Omit<Comment, 'id' | 'created_at'>
+): Omit<DbComment, 'id' | 'created_at'> {
+  return {
+    annotation_id: comment.annotation_id,
+    author: comment.author,
+    text: comment.text,
   };
 }

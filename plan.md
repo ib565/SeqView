@@ -189,20 +189,28 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 ---
 
-### Stage 6: Comments
+### Stage 6: Comments ✅ COMPLETE
 
 **Goal:** Add discussion layer.
 
 **Scope:**
 - Add comment on an annotation
-- Add comment on a position (click base → comment)
-- Display comments in sidebar or popover
-- Author field (simple text input, no auth)
-- Timestamp
+- Display comments in expandable sidebar section
+- Author field (simple text input, default "Anonymous", no auth)
+- Timestamp with relative time formatting
+- Delete comments (requires edit token)
+- Comment count badges on annotations
+- Prefetch comments on page load for instant display
 
-**Out of scope:** Threading, replies, resolve/unresolve.
+**Out of scope:** Threading, replies, resolve/unresolve, position-level comments (annotation-only).
 
 **Done when:** You can add a comment saying "Check this region" on an annotation.
+
+**Implementation notes:**
+- Comments are prefetched when annotations load (parallel requests)
+- Expand/collapse UI with chevron and comment icon indicator
+- Comments displayed in expandable section below each annotation in sidebar
+- Edit token required for POST/DELETE operations
 
 ---
 
@@ -239,8 +247,10 @@ POST   /api/annotations                        → { annotation }
 PATCH  /api/annotations/:id                    → { annotation }
 DELETE /api/annotations/:id                    → { success }
 
-# Comments (not yet implemented)
-POST   /api/comments                           → { comment }
+# Comments
+GET    /api/annotations/:id/comments           → [comment, ...]
+POST   /api/comments                           → { comment } (requires x-edit-token)
+DELETE /api/comments/:id                       → { success } (requires x-edit-token)
 ```
 
 **Note:** Edit operations validate the `edit_token` via header (`x-edit-token`) and match it to the sequence. View operations only need the `view_slug`. Sequence creation accepts optional `name` field.
@@ -282,7 +292,7 @@ seqview/
 │   ├── AnnotationTrack.tsx     # Benchling-style annotation bars below sequence
 │   ├── AnnotationForm.tsx      # Create/edit annotation modal
 │   ├── AnnotationList.tsx      # Sidebar list of annotations
-│   ├── CommentPanel.tsx        # Comments sidebar/popover (TODO)
+│   ├── CommentPanel.tsx        # Comments display and add form
 │   └── ShareLinks.tsx          # Compact share links dropdown component
 │
 ├── lib/
@@ -316,7 +326,7 @@ seqview/
 - [x] Optional sequence name field
 - [x] Can share via URL (view and edit links)
 - [x] Navigation buttons (back to homepage)
-- [ ] Can add comments
+- [x] Can add comments
 - [x] Doesn't crash on edge cases (empty input, invalid characters)
 
 ---
@@ -336,9 +346,9 @@ seqview/
 - ✅ Stage 3: Annotations (Local)
 - ✅ Stage 4: Persistence (Supabase integration)
 - ✅ Stage 5: Sharing (URLs and copy functionality)
+- ✅ Stage 6: Comments (annotation-level discussion)
 
 **Remaining:**
-- ⏳ Stage 6: Comments
 - ⏳ Stage 7: Polish & Deploy
 
 **Key Implementation Details:**

@@ -92,7 +92,7 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 **Out of scope:** Translation, annotations, saving, sharing.
 
-**Done when:** You can paste `ATGCGATCGATCG` and see it formatted nicely with colored bases.
+**Done when:** You can paste `ATGCGATCGATCGATGCGATCGATCGATGCGATCGATCGATGCGATCGATCGATGCGATCGATCGATGCGATCGATCG` and see it formatted nicely with colored bases.
 
 ---
 

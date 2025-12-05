@@ -7,21 +7,19 @@ interface BaseProps {
   type: SequenceType;
   position: number;
   isSelected?: boolean;
-  annotationColor?: string | null;
   onClick?: (position: number) => void;
 }
 
 /**
  * Single nucleotide base with color coding
  * A = green, T/U = red, G = gold/yellow, C = blue
- * Supports selection highlighting and annotation colors
+ * Supports selection highlighting for creating annotations
  */
 export default function Base({
   base,
   type,
   position,
   isSelected = false,
-  annotationColor = null,
   onClick,
 }: BaseProps) {
   const getColorClass = (base: string): string => {
@@ -57,22 +55,14 @@ export default function Base({
     getColorClass(base),
   ];
 
-  // Selection takes precedence over annotation for visibility
+  // Selection highlighting for annotation creation
   if (isSelected) {
     baseClasses.push('bg-blue-500/40', 'ring-1', 'ring-blue-400');
-  } else if (annotationColor) {
-    // Use annotation color as background with transparency
-    // We'll apply this via inline style
   }
 
   return (
     <span
       className={baseClasses.join(' ')}
-      style={
-        !isSelected && annotationColor
-          ? { backgroundColor: `${annotationColor}40` } // 40 = 25% opacity in hex
-          : undefined
-      }
       onClick={handleClick}
       title={`Position ${position}`}
     >

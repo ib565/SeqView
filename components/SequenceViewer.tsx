@@ -5,6 +5,7 @@ import SequenceRow from './SequenceRow';
 import TranslationControls from './TranslationControls';
 import AnnotationForm from './AnnotationForm';
 import AnnotationList from './AnnotationList';
+import AnnotationTrack from './AnnotationTrack';
 import { SequenceType, Selection, Annotation } from '@/types';
 import {
   splitIntoCodonGroups,
@@ -27,6 +28,15 @@ const BASES_PER_ROW = 60;
  */
 function generateId(): string {
   return `ann_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Calculate the end position for a row
+ */
+function getRowEndPosition(rowGroups: { bases: string; position: number }[]): number {
+  if (rowGroups.length === 0) return 0;
+  const lastGroup = rowGroups[rowGroups.length - 1];
+  return lastGroup.position + lastGroup.bases.length - 1;
 }
 
 /**
@@ -135,7 +145,7 @@ export default function SequenceViewer({
   );
 
   /**
-   * Scroll to an annotation's position
+   * Scroll to an annotation's position and start editing
    */
   const handleAnnotationClick = useCallback((annotation: Annotation) => {
     // Find which row contains the start of the annotation
@@ -195,21 +205,36 @@ export default function SequenceViewer({
           onFrameChange={setReadingFrame}
         />
 
-        {/* Sequence rows with codon groups */}
-        <div className="space-y-2">
-          {rows.map((rowGroups, index) => (
-            <SequenceRow
-              key={index}
-              ref={(ref) => setRowRef(index, ref)}
-              codonGroups={rowGroups}
-              startPosition={getRowStartPositionFromGroups(rowGroups)}
-              type={type}
-              showTranslation={showTranslation}
-              selection={selection}
-              annotations={annotations}
-              onBaseClick={handleBaseClick}
-            />
-          ))}
+        {/* Sequence rows with codon groups and annotation tracks */}
+        <div className="space-y-3">
+          {rows.map((rowGroups, index) => {
+            const rowStart = getRowStartPositionFromGroups(rowGroups);
+            const rowEnd = getRowEndPosition(rowGroups);
+            
+            return (
+              <div key={index}>
+                {/* Sequence row */}
+                <SequenceRow
+                  ref={(ref) => setRowRef(index, ref)}
+                  codonGroups={rowGroups}
+                  startPosition={rowStart}
+                  type={type}
+                  showTranslation={showTranslation}
+                  selection={selection}
+                  onBaseClick={handleBaseClick}
+                />
+                
+                {/* Annotation track below this row (Benchling-style) */}
+                <AnnotationTrack
+                  annotations={annotations}
+                  rowStart={rowStart}
+                  rowEnd={rowEnd}
+                  basesPerRow={BASES_PER_ROW}
+                  onAnnotationClick={handleAnnotationClick}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

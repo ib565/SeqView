@@ -1,7 +1,7 @@
 'use client';
 
 import Base from './Base';
-import { SequenceType, Selection, Annotation } from '@/types';
+import { SequenceType, Selection } from '@/types';
 
 interface CodonGroupProps {
   bases: string; // 1-3 bases
@@ -10,7 +10,6 @@ interface CodonGroupProps {
   isOrphan: boolean;
   type: SequenceType;
   selection: Selection;
-  annotations: Annotation[];
   onBaseClick: (position: number) => void;
   showTranslation: boolean;
 }
@@ -27,17 +26,6 @@ function isPositionSelected(pos: number, selection: Selection): boolean {
 }
 
 /**
- * Get the annotation color for a position (last annotation wins for overlaps)
- */
-function getAnnotationColor(pos: number, annotations: Annotation[]): string | null {
-  // Find all annotations covering this position
-  const covering = annotations.filter(a => pos >= a.start && pos <= a.end);
-  if (covering.length === 0) return null;
-  // Return the last one (most recently added)
-  return covering[covering.length - 1].color;
-}
-
-/**
  * Displays a codon group (1-3 bases) with amino acid below
  * Orphan bases (from reading frames 1/2) are shown but not translated
  */
@@ -48,7 +36,6 @@ export default function CodonGroup({
   isOrphan,
   type,
   selection,
-  annotations,
   onBaseClick,
   showTranslation,
 }: CodonGroupProps) {
@@ -68,7 +55,6 @@ export default function CodonGroup({
               type={type}
               position={basePosition}
               isSelected={isPositionSelected(basePosition, selection)}
-              annotationColor={getAnnotationColor(basePosition, annotations)}
               onClick={onBaseClick}
             />
           );

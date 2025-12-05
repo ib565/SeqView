@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import CodonGroup from './CodonGroup';
-import { SequenceType, Selection, Annotation } from '@/types';
+import { SequenceType, Selection } from '@/types';
 import { CodonGroup as CodonGroupType } from '@/lib/translation';
 
 interface SequenceRowProps {
@@ -11,7 +11,6 @@ interface SequenceRowProps {
   type: SequenceType;
   showTranslation: boolean;
   selection: Selection;
-  annotations: Annotation[];
   onBaseClick: (position: number) => void;
 }
 
@@ -28,7 +27,6 @@ const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
       type,
       showTranslation,
       selection,
-      annotations,
       onBaseClick,
     },
     ref
@@ -52,7 +50,6 @@ const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
               type={type}
               showTranslation={showTranslation}
               selection={selection}
-              annotations={annotations}
               onBaseClick={onBaseClick}
             />
           ))}

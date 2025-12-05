@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SequenceInput from '@/components/SequenceInput';
+import RecentSequences from '@/components/RecentSequences';
 import { SequenceType, CreateSequenceRequest } from '@/types';
+import { saveRecentSequence } from '@/lib/recentSequences';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +37,16 @@ export default function Home() {
       }
 
       const data = await response.json();
+      
+      // Save to recent sequences
+      saveRecentSequence({
+        view_slug: data.view_slug,
+        edit_token: data.edit_token,
+        name: name || null,
+        length: seq.length,
+        created_at: new Date().toISOString(),
+      });
+      
       // Redirect to edit page with the edit token
       router.push(`/edit/${data.edit_token}`);
     } catch (err) {
@@ -69,6 +81,7 @@ export default function Home() {
                 <p>Creating sequence...</p>
               </div>
             )}
+            <RecentSequences />
           </div>
         </div>
       </div>

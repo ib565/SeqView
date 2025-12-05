@@ -75,7 +75,7 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 ## Development Stages
 
-### Stage 1: Static Viewer
+### Stage 1: Static Viewer ✅ COMPLETE
 
 **Goal:** Display a sequence with position markers. No database, no persistence.
 
@@ -88,7 +88,7 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 - Display sequence in rows (60 bases per row, standard convention)
 - Show position numbers (1, 61, 121, ...)
 - Color-code bases (A=green, T/U=red, G=yellow, C=blue — common convention)
-- Basic styling
+- Dark theme styling
 
 **Out of scope:** Translation, annotations, saving, sharing.
 
@@ -96,41 +96,47 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 ---
 
-### Stage 2: Translation
+### Stage 2: Translation ✅ COMPLETE
 
 **Goal:** Show protein translation below the sequence.
 
 **Scope:**
-- Implement codon table (client-side)
+- Implement full codon table (64 codons → amino acids, client-side)
   - For DNA: treat T as if it were U (standard practice)
   - For RNA: use directly
-- Translate sequence in reading frame 0
+- Translate sequence in reading frames 0, 1, 2
 - Display amino acids aligned below codons (one letter codes: M, A, K, etc.)
-- Show stop codons distinctly (*, or "Stop")
+- Show stop codons distinctly (* in red/bold)
+- Handle orphan bases: Frames 1/2 show orphan bases at start (grayed out, not translated)
 - Toggle to show/hide translation
 - Dropdown to switch reading frames (0, 1, 2)
 
 **Out of scope:** Reverse complement, 6-frame translation, ORF detection.
 
-**Done when:** You see `ATG` with `M` (Methionine/Start) below it, aligned properly.
+**Done when:** You see `ATG` with `M` (Methionine/Start) below it, aligned properly. Can switch frames and see orphan bases handled correctly.
 
 ---
 
-### Stage 3: Annotations (Local Only)
+### Stage 3: Annotations (Local Only) ✅ COMPLETE
 
 **Goal:** Create and display annotations on the sequence.
 
 **Scope:**
-- Click and drag to select a region on the sequence
-- Form to add: label (required), color (picker), type (optional dropdown: gene, promoter, CDS, misc)
-- Display annotations as colored highlight/underline on the sequence bases
+- **Selection methods:**
+  - Drag selection: Click and drag across bases to select region
+  - Click selection: Click start position, then click end position (alternative method)
+- Form to add: label (required), color (picker with 8 presets), type (optional dropdown: gene, promoter, CDS, misc)
+- Display annotations as Benchling-style colored bars below sequence rows (not highlighting bases)
+- Lane packing: Non-overlapping annotations appear on same line; overlapping ones stack vertically
 - List annotations in a sidebar panel
-- Click annotation in sidebar → scroll/jump to that region
+- Edit annotations: Change label, color, type
+- Delete annotations: Remove via sidebar
+- Click annotation in sidebar → scroll/jump to that region with temporary highlight
 - Store in React state (no persistence yet)
 
-**Out of scope:** Database, editing, deleting, overlapping annotation resolution.
+**Out of scope:** Database persistence, overlapping annotation resolution (last annotation wins).
 
-**Done when:** You can select bases 10-50, label it "Promoter", and see it highlighted in your chosen color.
+**Done when:** You can drag-select bases 10-50, label it "Promoter", see it as a colored bar below the sequence, edit it, and delete it.
 
 ---
 
@@ -254,13 +260,15 @@ seqview/
 ├── components/
 │   ├── SequenceViewer.tsx      # Main sequence display component
 │   ├── SequenceInput.tsx       # Paste/input form
-│   ├── SequenceRow.tsx         # Single row of bases (60 chars)
-│   ├── TranslationRow.tsx      # Amino acid row below sequence
-│   ├── AnnotationBar.tsx       # Colored annotation overlay
+│   ├── SequenceRow.tsx         # Single row of bases + annotation track
+│   ├── CodonGroup.tsx          # Codon triplet with amino acid below
+│   ├── Base.tsx                # Single nucleotide base
+│   ├── TranslationControls.tsx # Toggle + reading frame selector
+│   ├── AnnotationTrack.tsx     # Benchling-style annotation bars below sequence
 │   ├── AnnotationForm.tsx      # Create/edit annotation modal
 │   ├── AnnotationList.tsx      # Sidebar list of annotations
-│   ├── CommentPanel.tsx        # Comments sidebar/popover
-│   └── ShareLinks.tsx          # Copy link buttons
+│   ├── CommentPanel.tsx        # Comments sidebar/popover (TODO)
+│   └── ShareLinks.tsx          # Copy link buttons (TODO)
 │
 ├── lib/
 │   ├── supabase.ts             # Supabase client setup
@@ -283,14 +291,16 @@ seqview/
 ## Checklist
 
 - [ ] URL is accessible publicly
-- [ ] Can paste/input a sequence
-- [ ] Sequence displays with position numbers
-- [ ] Translation works (at least one frame)
-- [ ] Can create annotations (select region, add label/color)
+- [x] Can paste/input a sequence
+- [x] Sequence displays with position numbers
+- [x] Translation works (all three frames: 0, 1, 2)
+- [x] Can create annotations (drag or click to select region, add label/color)
+- [x] Can edit annotations (change label, color, type)
+- [x] Can delete annotations
 - [ ] Annotations persist across refresh
 - [ ] Can add comments
 - [ ] Can share via URL
-- [ ] Doesn't crash on edge cases (empty input, invalid characters)
+- [x] Doesn't crash on edge cases (empty input, invalid characters)
 
 ---
 

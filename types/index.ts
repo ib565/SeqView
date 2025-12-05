@@ -43,3 +43,68 @@ export const ANNOTATION_TYPES: { label: string; value: AnnotationType }[] = [
   { label: 'CDS', value: 'CDS' },
   { label: 'Misc', value: 'misc' },
 ];
+
+// Database types
+export interface DbSequence {
+  id: string;
+  name: string | null;
+  nucleotides: string;
+  type: SequenceType;
+  view_slug: string;
+  edit_token: string;
+  created_at: string;
+}
+
+export interface DbAnnotation {
+  id: string;
+  sequence_id: string;
+  start_pos: number;
+  end_pos: number;
+  label: string;
+  color: string;
+  type: AnnotationType | null;
+  created_at: string;
+}
+
+// API request/response types
+export interface CreateSequenceRequest {
+  nucleotides: string;
+  type: SequenceType;
+  name?: string;
+}
+
+export interface CreateSequenceResponse {
+  view_slug: string;
+  edit_token: string;
+}
+
+export interface SequenceWithAnnotations {
+  sequence: DbSequence;
+  annotations: DbAnnotation[];
+}
+
+// Helper functions to convert between client and DB types
+export function dbAnnotationToAnnotation(dbAnn: DbAnnotation): Annotation {
+  return {
+    id: dbAnn.id,
+    start: dbAnn.start_pos,
+    end: dbAnn.end_pos,
+    label: dbAnn.label,
+    color: dbAnn.color,
+    type: dbAnn.type || undefined,
+  };
+}
+
+export function annotationToDbAnnotation(
+  ann: Omit<Annotation, 'id'>,
+  sequenceId: string
+): Omit<DbAnnotation, 'id' | 'created_at'> {
+  return {
+    sequence_id: sequenceId,
+    start_pos: ann.start,
+    end_pos: ann.end,
+    label: ann.label,
+    color: ann.color,
+    type: ann.type || null,
+  };
+}

@@ -1,25 +1,46 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SequenceInput from '@/components/SequenceInput';
-import SequenceViewer from '@/components/SequenceViewer';
-import { SequenceType, Annotation } from '@/types';
+import { SequenceType, CreateSequenceRequest } from '@/types';
 
 export default function Home() {
-  const [sequence, setSequence] = useState<string | null>(null);
-  const [sequenceType, setSequenceType] = useState<SequenceType | null>(null);
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-  const handleSequenceSubmit = (seq: string, type: SequenceType) => {
-    setSequence(seq);
-    setSequenceType(type);
-    setAnnotations([]); // Clear annotations when loading new sequence
-  };
+  const handleSequenceSubmit = async (seq: string, type: SequenceType, name?: string) => {
+    setIsLoading(true);
+    setError(null);
 
-  const handleClear = () => {
-    setSequence(null);
-    setSequenceType(null);
-    setAnnotations([]);
+    try {
+      const requestBody: CreateSequenceRequest = {
+        nucleotides: seq,
+        type,
+        name,
+      };
+
+      const response = await fetch('/api/sequences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create sequence');
+      }
+
+      const data = await response.json();
+      // Redirect to edit page with the edit token
+      router.push(`/edit/${data.edit_token}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -32,33 +53,24 @@ export default function Home() {
         </header>
 
         {/* Main content */}
-        {!sequence ? (
-          <div className="flex justify-center">
-            <SequenceInput onSequenceSubmit={handleSequenceSubmit} />
+        <div className="flex justify-center">
+          <div className="w-full max-w-4xl">
+            {error && (
+              <div className="mb-4 p-4 bg-red-900/30 border border-red-700 rounded-lg">
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            )}
+            <SequenceInput
+              onSequenceSubmit={handleSequenceSubmit}
+              disabled={isLoading}
+            />
+            {isLoading && (
+              <div className="mt-4 text-center text-gray-400">
+                <p>Creating sequence...</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Clear button */}
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handleClear}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-600"
-              >
-                ← New Sequence
-              </button>
-            </div>
-
-            {/* Sequence viewer with annotations */}
-            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <SequenceViewer
-                sequence={sequence}
-                type={sequenceType!}
-                annotations={annotations}
-                onAnnotationsChange={setAnnotations}
-              />
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </main>
   );

@@ -18,6 +18,8 @@ interface SequenceViewerProps {
   type: SequenceType;
   annotations: Annotation[];
   onAnnotationsChange: (annotations: Annotation[]) => void;
+  readOnly?: boolean;
+  editToken?: string;
 }
 
 const BASES_PER_ROW = 60;
@@ -47,6 +49,8 @@ export default function SequenceViewer({
   type,
   annotations,
   onAnnotationsChange,
+  readOnly = false,
+  editToken,
 }: SequenceViewerProps) {
   const [showTranslation, setShowTranslation] = useState(false);
   const [readingFrame, setReadingFrame] = useState<ReadingFrame>(0);
@@ -54,6 +58,8 @@ export default function SequenceViewer({
   const [showAnnotationForm, setShowAnnotationForm] = useState(false);
   const [editingAnnotation, setEditingAnnotation] = useState<Annotation | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Refs for scrolling to rows
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -86,12 +92,13 @@ export default function SequenceViewer({
    * Handle mouse down on a base - start drag selection
    */
   const handleBaseMouseDown = useCallback((position: number) => {
+    if (readOnly) return;
     if (editingAnnotation) return;
     
     setIsDragging(true);
     setSelection({ start: position, end: position });
     setShowAnnotationForm(false);
-  }, [editingAnnotation]);
+  }, [readOnly, editingAnnotation]);
 
   /**
    * Handle mouse enter on a base - update selection while dragging
@@ -106,6 +113,7 @@ export default function SequenceViewer({
    * Handle clicking on a base (fallback for non-drag selection)
    */
   const handleBaseClick = useCallback((position: number) => {
+    if (readOnly) return;
     // Don't process click if we just finished dragging
     if (isDragging) return;
     if (editingAnnotation) return;
@@ -125,34 +133,106 @@ export default function SequenceViewer({
         return { start: position, end: null };
       }
     });
-  }, [isDragging, editingAnnotation]);
+  }, [readOnly, isDragging, editingAnnotation]);
 
   /**
    * Create a new annotation or update existing one
    */
   const handleSubmitAnnotation = useCallback(
-    (annotationData: Omit<Annotation, 'id'>) => {
-      if (editingAnnotation) {
-        // Update existing annotation
-        const updatedAnnotations = annotations.map((a) =>
-          a.id === editingAnnotation.id
-            ? { ...annotationData, id: editingAnnotation.id }
-            : a
-        );
-        onAnnotationsChange(updatedAnnotations);
-        setEditingAnnotation(null);
-      } else {
-        // Create new annotation
-        const newAnnotation: Annotation = {
-          ...annotationData,
-          id: generateId(),
-        };
-        onAnnotationsChange([...annotations, newAnnotation]);
+    async (annotationData: Omit<Annotation, 'id'>) => {
+      if (readOnly) {
+        setError('Cannot modify annotations in read-only mode');
+        return;
       }
-      setSelection({ start: null, end: null });
-      setShowAnnotationForm(false);
+
+      if (!editToken) {
+        setError('Edit token is required');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        if (editingAnnotation) {
+          // Update existing annotation
+          const response = await fetch(`/api/annotations/${editingAnnotation.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-edit-token': editToken,
+            },
+            body: JSON.stringify({
+              start: annotationData.start,
+              end: annotationData.end,
+              label: annotationData.label,
+              color: annotationData.color,
+              type: annotationData.type,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update annotation');
+          }
+
+          const updatedDbAnnotation = await response.json();
+          const updatedAnnotation: Annotation = {
+            id: updatedDbAnnotation.id,
+            start: updatedDbAnnotation.start_pos,
+            end: updatedDbAnnotation.end_pos,
+            label: updatedDbAnnotation.label,
+            color: updatedDbAnnotation.color,
+            type: updatedDbAnnotation.type || undefined,
+          };
+
+          const updatedAnnotations = annotations.map((a) =>
+            a.id === editingAnnotation.id ? updatedAnnotation : a
+          );
+          onAnnotationsChange(updatedAnnotations);
+          setEditingAnnotation(null);
+        } else {
+          // Create new annotation
+          const response = await fetch('/api/annotations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-edit-token': editToken,
+            },
+            body: JSON.stringify({
+              start: annotationData.start,
+              end: annotationData.end,
+              label: annotationData.label,
+              color: annotationData.color,
+              type: annotationData.type,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create annotation');
+          }
+
+          const newDbAnnotation = await response.json();
+          const newAnnotation: Annotation = {
+            id: newDbAnnotation.id,
+            start: newDbAnnotation.start_pos,
+            end: newDbAnnotation.end_pos,
+            label: newDbAnnotation.label,
+            color: newDbAnnotation.color,
+            type: newDbAnnotation.type || undefined,
+          };
+          onAnnotationsChange([...annotations, newAnnotation]);
+        }
+        setSelection({ start: null, end: null });
+        setShowAnnotationForm(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to save annotation');
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [annotations, onAnnotationsChange, editingAnnotation]
+    [readOnly, editToken, annotations, onAnnotationsChange, editingAnnotation]
   );
 
   /**
@@ -177,10 +257,41 @@ export default function SequenceViewer({
    * Delete an annotation
    */
   const handleDeleteAnnotation = useCallback(
-    (id: string) => {
-      onAnnotationsChange(annotations.filter((a) => a.id !== id));
+    async (id: string) => {
+      if (readOnly) {
+        setError('Cannot delete annotations in read-only mode');
+        return;
+      }
+
+      if (!editToken) {
+        setError('Edit token is required');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/annotations/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'x-edit-token': editToken,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete annotation');
+        }
+
+        onAnnotationsChange(annotations.filter((a) => a.id !== id));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete annotation');
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [annotations, onAnnotationsChange]
+    [readOnly, editToken, annotations, onAnnotationsChange]
   );
 
   /**
@@ -234,12 +345,18 @@ export default function SequenceViewer({
             <span className="text-sm text-gray-400">
               Length: {sequence.length.toLocaleString()} bases
             </span>
-            {normalizedSelection.start !== null && !editingAnnotation && (
+            {normalizedSelection.start !== null && !editingAnnotation && !readOnly && (
               <span className="text-sm text-blue-400">
                 {normalizedSelection.end !== null
                   ? `Selected: ${normalizedSelection.start}-${normalizedSelection.end} (${normalizedSelection.end - normalizedSelection.start + 1} bp)`
                   : `Selection start: ${normalizedSelection.start}`}
               </span>
+            )}
+            {readOnly && (
+              <span className="text-sm text-gray-500">Read-only mode</span>
+            )}
+            {isLoading && (
+              <span className="text-sm text-gray-500">Saving...</span>
             )}
           </div>
         </div>
@@ -297,16 +414,24 @@ export default function SequenceViewer({
               <AnnotationList
                 annotations={annotations}
                 onAnnotationClick={handleAnnotationClick}
-                onEditAnnotation={handleEditAnnotation}
-                onDeleteAnnotation={handleDeleteAnnotation}
+                onEditAnnotation={readOnly ? undefined : handleEditAnnotation}
+                onDeleteAnnotation={readOnly ? undefined : handleDeleteAnnotation}
+                readOnly={readOnly}
               />
             </div>
           </div>
 
           {/* Help text */}
-          <p className="mt-3 text-xs text-gray-500 px-1">
-            Drag across bases to select a region, or click twice to select start and end positions.
-          </p>
+          {!readOnly && (
+            <p className="mt-3 text-xs text-gray-500 px-1">
+              Drag across bases to select a region, or click twice to select start and end positions.
+            </p>
+          )}
+          {error && (
+            <div className="mt-3 p-2 bg-red-900/30 border border-red-700 rounded text-xs text-red-300">
+              {error}
+            </div>
+          )}
         </div>
       </div>
 

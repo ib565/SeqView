@@ -1,6 +1,15 @@
+'use client';
+
+import { useState } from 'react';
 import SequenceRow from './SequenceRow';
+import TranslationControls from './TranslationControls';
 import { SequenceType } from '@/types';
-import { splitIntoRows, getRowStartPosition } from '@/lib/sequenceUtils';
+import {
+  splitIntoCodonGroups,
+  splitCodonGroupsIntoRows,
+  getRowStartPositionFromGroups,
+  ReadingFrame,
+} from '@/lib/translation';
 
 interface SequenceViewerProps {
   sequence: string;
@@ -11,9 +20,17 @@ const BASES_PER_ROW = 60;
 
 /**
  * Main component that displays a sequence in formatted rows
+ * Supports translation with reading frame selection
  */
 export default function SequenceViewer({ sequence, type }: SequenceViewerProps) {
-  const rows = splitIntoRows(sequence, BASES_PER_ROW);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [readingFrame, setReadingFrame] = useState<ReadingFrame>(0);
+
+  // Split sequence into codon groups based on reading frame
+  const codonGroups = splitIntoCodonGroups(sequence, readingFrame);
+  
+  // Split codon groups into display rows (~60 bases per row)
+  const rows = splitCodonGroupsIntoRows(codonGroups, BASES_PER_ROW);
 
   return (
     <div className="w-full">
@@ -30,18 +47,26 @@ export default function SequenceViewer({ sequence, type }: SequenceViewerProps) 
         </div>
       </div>
 
-      {/* Sequence rows */}
-      <div className="space-y-1">
-        {rows.map((row, index) => (
+      {/* Translation controls */}
+      <TranslationControls
+        showTranslation={showTranslation}
+        readingFrame={readingFrame}
+        onToggleTranslation={() => setShowTranslation(!showTranslation)}
+        onFrameChange={setReadingFrame}
+      />
+
+      {/* Sequence rows with codon groups */}
+      <div className="space-y-2">
+        {rows.map((rowGroups, index) => (
           <SequenceRow
             key={index}
-            sequence={row}
-            startPosition={getRowStartPosition(index, BASES_PER_ROW)}
+            codonGroups={rowGroups}
+            startPosition={getRowStartPositionFromGroups(rowGroups)}
             type={type}
+            showTranslation={showTranslation}
           />
         ))}
       </div>
     </div>
   );
 }
-

@@ -1,16 +1,24 @@
-import Base from './Base';
+import CodonGroup from './CodonGroup';
 import { SequenceType } from '@/types';
+import { CodonGroup as CodonGroupType } from '@/lib/translation';
 
 interface SequenceRowProps {
-  sequence: string;
+  codonGroups: CodonGroupType[];
   startPosition: number;
   type: SequenceType;
+  showTranslation: boolean;
 }
 
 /**
- * Single row displaying position number and sequence bases
+ * Single row displaying position number and codon groups
+ * When translation is enabled, amino acids are shown below codons
  */
-export default function SequenceRow({ sequence, startPosition, type }: SequenceRowProps) {
+export default function SequenceRow({
+  codonGroups,
+  startPosition,
+  type,
+  showTranslation,
+}: SequenceRowProps) {
   return (
     <div className="flex items-start gap-4 font-mono text-sm">
       {/* Position number - right-aligned, gray */}
@@ -18,13 +26,19 @@ export default function SequenceRow({ sequence, startPosition, type }: SequenceR
         {startPosition}
       </div>
       
-      {/* Sequence bases */}
-      <div className="flex gap-0.5 flex-wrap">
-        {sequence.split('').map((base, index) => (
-          <Base key={index} base={base} type={type} />
+      {/* Codon groups with spacing */}
+      <div className="flex gap-1 flex-wrap items-start">
+        {codonGroups.map((group, index) => (
+          <CodonGroup
+            key={`${group.position}-${index}`}
+            bases={group.bases}
+            aminoAcid={showTranslation ? group.aminoAcid : null}
+            position={group.position}
+            isOrphan={group.isOrphan}
+            type={type}
+          />
         ))}
       </div>
     </div>
   );
 }
-

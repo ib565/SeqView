@@ -28,44 +28,52 @@ export default function AnnotationList({
 }: AnnotationListProps) {
   const [expandedAnnotations, setExpandedAnnotations] = useState<Set<string>>(new Set());
   const [commentsMap, setCommentsMap] = useState<Map<string, Comment[]>>(new Map());
-  const [loadingComments, setLoadingComments] = useState<Set<string>>(new Set());
+  const [loadingComments, setLoadingComments] = useState(false);
 
-  // Fetch comments when annotation is expanded
+  // Prefetch all comments when annotations are loaded
   useEffect(() => {
-    const fetchComments = async (annotationId: string) => {
-      // Check if we already have comments or are loading them
-      if (commentsMap.has(annotationId) || loadingComments.has(annotationId)) {
-        return;
-      }
+    if (annotations.length === 0) {
+      return;
+    }
 
-      setLoadingComments((prev) => new Set(prev).add(annotationId));
-
+    const fetchAllComments = async () => {
+      setLoadingComments(true);
+      
       try {
-        const response = await fetch(`/api/annotations/${annotationId}/comments`);
-        if (response.ok) {
-          const comments = await response.json();
-          setCommentsMap((prev) => {
-            const newMap = new Map(prev);
+        // Fetch comments for all annotations in parallel
+        const commentPromises = annotations.map(async (annotation) => {
+          try {
+            const response = await fetch(`/api/annotations/${annotation.id}/comments`);
+            if (response.ok) {
+              const comments = await response.json();
+              return { annotationId: annotation.id, comments };
+            }
+            return { annotationId: annotation.id, comments: [] };
+          } catch (error) {
+            console.error(`Failed to fetch comments for annotation ${annotation.id}:`, error);
+            return { annotationId: annotation.id, comments: [] };
+          }
+        });
+
+        const results = await Promise.all(commentPromises);
+        
+        // Update comments map with all fetched comments
+        setCommentsMap((prev) => {
+          const newMap = new Map(prev);
+          results.forEach(({ annotationId, comments }) => {
             newMap.set(annotationId, comments);
-            return newMap;
           });
-        }
+          return newMap;
+        });
       } catch (error) {
         console.error('Failed to fetch comments:', error);
       } finally {
-        setLoadingComments((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(annotationId);
-          return newSet;
-        });
+        setLoadingComments(false);
       }
     };
 
-    expandedAnnotations.forEach((annotationId) => {
-      fetchComments(annotationId);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expandedAnnotations]);
+    fetchAllComments();
+  }, [annotations]);
 
   const toggleExpanded = (annotationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -162,7 +170,6 @@ export default function AnnotationList({
       {annotations.map((annotation) => {
         const isExpanded = expandedAnnotations.has(annotation.id);
         const comments = commentsMap.get(annotation.id) || [];
-        const isLoading = loadingComments.has(annotation.id);
 
         return (
           <div key={annotation.id} className="transition-colors">
@@ -171,26 +178,45 @@ export default function AnnotationList({
               onClick={() => onAnnotationClick(annotation)}
             >
               <div className="flex items-start gap-2">
-                {/* Chevron for expand/collapse */}
-                <button
-                  onClick={(e) => toggleExpanded(annotation.id, e)}
-                  className="shrink-0 mt-0.5 text-gray-500 hover:text-gray-300 transition-colors"
-                  title={isExpanded ? 'Collapse comments' : 'Expand comments'}
-                >
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {/* Chevron and comment indicator for expand/collapse */}
+                <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                  <button
+                    onClick={(e) => toggleExpanded(annotation.id, e)}
+                    className="text-gray-500 hover:text-gray-300 transition-colors"
+                    title={isExpanded ? 'Collapse comments' : 'Expand comments'}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                  {/* Comment icon indicator */}
+                  {!isExpanded && (
+                    <svg
+                      className="w-3.5 h-3.5 text-gray-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      title="Click to view comments"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  )}
+                </div>
 
                 {/* Color indicator */}
                 <div
@@ -289,20 +315,14 @@ export default function AnnotationList({
             {/* Expanded comments section */}
             {isExpanded && (
               <div className="px-3 pb-3">
-                {isLoading ? (
-                  <div className="text-xs text-gray-500 text-center py-2">
-                    Loading comments...
-                  </div>
-                ) : (
-                  <CommentPanel
-                    annotationId={annotation.id}
-                    comments={comments}
-                    onAddComment={(author, text) => handleAddComment(annotation.id, author, text)}
-                    onDeleteComment={!readOnly && editToken ? handleDeleteComment : undefined}
-                    readOnly={readOnly}
-                    editToken={editToken}
-                  />
-                )}
+                <CommentPanel
+                  annotationId={annotation.id}
+                  comments={comments}
+                  onAddComment={(author, text) => handleAddComment(annotation.id, author, text)}
+                  onDeleteComment={!readOnly && editToken ? handleDeleteComment : undefined}
+                  readOnly={readOnly}
+                  editToken={editToken}
+                />
               </div>
             )}
           </div>

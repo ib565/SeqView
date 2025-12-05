@@ -25,7 +25,7 @@ export default function AnnotationForm({
   onCancel,
 }: AnnotationFormProps) {
   const [label, setLabel] = useState('');
-  const [color, setColor] = useState(ANNOTATION_COLORS[0].value);
+  const [color, setColor] = useState<string>(ANNOTATION_COLORS[0].value);
   const [type, setType] = useState<AnnotationType | ''>('');
 
   const isEditing = !!editingAnnotation;

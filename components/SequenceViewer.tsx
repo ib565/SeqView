@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import SequenceRow from './SequenceRow';
 import TranslationControls from './TranslationControls';
 import AnnotationForm from './AnnotationForm';
@@ -40,7 +40,7 @@ function getRowEndPosition(rowGroups: { bases: string; position: number }[]): nu
 
 /**
  * Main component that displays a sequence in formatted rows
- * Supports translation, selection, and annotations
+ * Supports translation, drag selection, and annotations
  */
 export default function SequenceViewer({
   sequence,
@@ -53,6 +53,7 @@ export default function SequenceViewer({
   const [selection, setSelection] = useState<Selection>({ start: null, end: null });
   const [showAnnotationForm, setShowAnnotationForm] = useState(false);
   const [editingAnnotation, setEditingAnnotation] = useState<Annotation | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Refs for scrolling to rows
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -64,10 +65,49 @@ export default function SequenceViewer({
   const rows = splitCodonGroupsIntoRows(codonGroups, BASES_PER_ROW);
 
   /**
-   * Handle clicking on a base to build selection
+   * Handle mouse up to end drag selection
+   */
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        // If we have a valid selection, show the form
+        if (selection.start !== null && selection.end !== null) {
+          setShowAnnotationForm(true);
+        }
+      }
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, [isDragging, selection]);
+
+  /**
+   * Handle mouse down on a base - start drag selection
+   */
+  const handleBaseMouseDown = useCallback((position: number) => {
+    if (editingAnnotation) return;
+    
+    setIsDragging(true);
+    setSelection({ start: position, end: position });
+    setShowAnnotationForm(false);
+  }, [editingAnnotation]);
+
+  /**
+   * Handle mouse enter on a base - update selection while dragging
+   */
+  const handleBaseMouseEnter = useCallback((position: number) => {
+    if (isDragging && selection.start !== null) {
+      setSelection((prev) => ({ ...prev, end: position }));
+    }
+  }, [isDragging, selection.start]);
+
+  /**
+   * Handle clicking on a base (fallback for non-drag selection)
    */
   const handleBaseClick = useCallback((position: number) => {
-    // Don't start new selection if editing
+    // Don't process click if we just finished dragging
+    if (isDragging) return;
     if (editingAnnotation) return;
 
     setSelection((prev) => {
@@ -85,7 +125,7 @@ export default function SequenceViewer({
         return { start: position, end: null };
       }
     });
-  }, [editingAnnotation]);
+  }, [isDragging, editingAnnotation]);
 
   /**
    * Create a new annotation or update existing one
@@ -172,6 +212,14 @@ export default function SequenceViewer({
     }
   }, []);
 
+  // Calculate normalized selection for display
+  const normalizedSelection: Selection = selection.start !== null && selection.end !== null
+    ? {
+        start: Math.min(selection.start, selection.end),
+        end: Math.max(selection.start, selection.end),
+      }
+    : selection;
+
   return (
     <div className="w-full flex gap-6">
       {/* Main sequence viewer */}
@@ -186,11 +234,11 @@ export default function SequenceViewer({
             <span className="text-sm text-gray-400">
               Length: {sequence.length.toLocaleString()} bases
             </span>
-            {selection.start !== null && !editingAnnotation && (
+            {normalizedSelection.start !== null && !editingAnnotation && (
               <span className="text-sm text-blue-400">
-                {selection.end !== null
-                  ? `Selected: ${selection.start}-${selection.end} (${selection.end - selection.start + 1} bp)`
-                  : `Selection start: ${selection.start} (click another base to complete)`}
+                {normalizedSelection.end !== null
+                  ? `Selected: ${normalizedSelection.start}-${normalizedSelection.end} (${normalizedSelection.end - normalizedSelection.start + 1} bp)`
+                  : `Selection start: ${normalizedSelection.start}`}
               </span>
             )}
           </div>
@@ -219,8 +267,10 @@ export default function SequenceViewer({
                 endPosition={rowEnd}
                 type={type}
                 showTranslation={showTranslation}
-                selection={selection}
+                selection={normalizedSelection}
                 onBaseClick={handleBaseClick}
+                onBaseMouseDown={handleBaseMouseDown}
+                onBaseMouseEnter={handleBaseMouseEnter}
                 annotations={annotations}
                 onAnnotationClick={handleAnnotationClick}
               />
@@ -255,15 +305,15 @@ export default function SequenceViewer({
 
           {/* Help text */}
           <p className="mt-3 text-xs text-gray-500 px-1">
-            Click on a base to start selecting, then click another base to complete the selection and create an annotation.
+            Drag across bases to select a region, or click twice to select start and end positions.
           </p>
         </div>
       </div>
 
       {/* Annotation form modal (create or edit) */}
-      {showAnnotationForm && selection.start !== null && selection.end !== null && (
+      {showAnnotationForm && normalizedSelection.start !== null && normalizedSelection.end !== null && (
         <AnnotationForm
-          selection={{ start: selection.start, end: selection.end }}
+          selection={{ start: normalizedSelection.start, end: normalizedSelection.end }}
           editingAnnotation={editingAnnotation || undefined}
           onSubmit={handleSubmitAnnotation}
           onCancel={handleCancelAnnotation}

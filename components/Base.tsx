@@ -8,12 +8,14 @@ interface BaseProps {
   position: number;
   isSelected?: boolean;
   onClick?: (position: number) => void;
+  onMouseDown?: (position: number) => void;
+  onMouseEnter?: (position: number) => void;
 }
 
 /**
  * Single nucleotide base with color coding
  * A = green, T/U = red, G = gold/yellow, C = blue
- * Supports selection highlighting for creating annotations
+ * Supports selection highlighting and drag selection for annotations
  */
 export default function Base({
   base,
@@ -21,6 +23,8 @@ export default function Base({
   position,
   isSelected = false,
   onClick,
+  onMouseDown,
+  onMouseEnter,
 }: BaseProps) {
   const getColorClass = (base: string): string => {
     switch (base) {
@@ -39,9 +43,16 @@ export default function Base({
   };
 
   const handleClick = () => {
-    if (onClick) {
-      onClick(position);
-    }
+    onClick?.(position);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent text selection
+    onMouseDown?.(position);
+  };
+
+  const handleMouseEnter = () => {
+    onMouseEnter?.(position);
   };
 
   // Build class string based on state
@@ -64,6 +75,8 @@ export default function Base({
     <span
       className={baseClasses.join(' ')}
       onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
       title={`Position ${position}`}
     >
       {base}

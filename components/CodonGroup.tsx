@@ -11,6 +11,8 @@ interface CodonGroupProps {
   type: SequenceType;
   selection: Selection;
   onBaseClick: (position: number) => void;
+  onBaseMouseDown: (position: number) => void;
+  onBaseMouseEnter: (position: number) => void;
   showTranslation: boolean;
 }
 
@@ -37,6 +39,8 @@ export default function CodonGroup({
   type,
   selection,
   onBaseClick,
+  onBaseMouseDown,
+  onBaseMouseEnter,
   showTranslation,
 }: CodonGroupProps) {
   const isStop = aminoAcid === '*';
@@ -56,6 +60,8 @@ export default function CodonGroup({
               position={basePosition}
               isSelected={isPositionSelected(basePosition, selection)}
               onClick={onBaseClick}
+              onMouseDown={onBaseMouseDown}
+              onMouseEnter={onBaseMouseEnter}
             />
           );
         })}

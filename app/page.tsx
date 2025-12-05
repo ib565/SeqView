@@ -3,20 +3,23 @@
 import { useState } from 'react';
 import SequenceInput from '@/components/SequenceInput';
 import SequenceViewer from '@/components/SequenceViewer';
-import { SequenceType } from '@/types';
+import { SequenceType, Annotation } from '@/types';
 
 export default function Home() {
   const [sequence, setSequence] = useState<string | null>(null);
   const [sequenceType, setSequenceType] = useState<SequenceType | null>(null);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   const handleSequenceSubmit = (seq: string, type: SequenceType) => {
     setSequence(seq);
     setSequenceType(type);
+    setAnnotations([]); // Clear annotations when loading new sequence
   };
 
   const handleClear = () => {
     setSequence(null);
     setSequenceType(null);
+    setAnnotations([]);
   };
 
   return (
@@ -45,9 +48,14 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Sequence viewer */}
+            {/* Sequence viewer with annotations */}
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-              <SequenceViewer sequence={sequence} type={sequenceType!} />
+              <SequenceViewer
+                sequence={sequence}
+                type={sequenceType!}
+                annotations={annotations}
+                onAnnotationsChange={setAnnotations}
+              />
             </div>
           </div>
         )}
@@ -55,4 +63,3 @@ export default function Home() {
     </main>
   );
 }
-

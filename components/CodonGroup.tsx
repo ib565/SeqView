@@ -10,7 +10,6 @@ interface CodonGroupProps {
   isOrphan: boolean;
   type: SequenceType;
   selection: Selection;
-  onBaseClick: (position: number) => void;
   onBaseMouseDown: (position: number) => void;
   onBaseMouseEnter: (position: number) => void;
   showTranslation: boolean;
@@ -38,7 +37,6 @@ export default function CodonGroup({
   isOrphan,
   type,
   selection,
-  onBaseClick,
   onBaseMouseDown,
   onBaseMouseEnter,
   showTranslation,
@@ -59,7 +57,6 @@ export default function CodonGroup({
               type={type}
               position={basePosition}
               isSelected={isPositionSelected(basePosition, selection)}
-              onClick={onBaseClick}
               onMouseDown={onBaseMouseDown}
               onMouseEnter={onBaseMouseEnter}
             />

@@ -109,31 +109,6 @@ export default function SequenceViewer({
     }
   }, [isDragging, selection.start]);
 
-  /**
-   * Handle clicking on a base (fallback for non-drag selection)
-   */
-  const handleBaseClick = useCallback((position: number) => {
-    if (readOnly) return;
-    // Don't process click if we just finished dragging
-    if (isDragging) return;
-    if (editingAnnotation) return;
-
-    setSelection((prev) => {
-      if (prev.start === null) {
-        // First click: set start
-        return { start: position, end: null };
-      } else if (prev.end === null) {
-        // Second click: set end and show form
-        const start = Math.min(prev.start, position);
-        const end = Math.max(prev.start, position);
-        setShowAnnotationForm(true);
-        return { start, end };
-      } else {
-        // Third click: reset and start new selection
-        return { start: position, end: null };
-      }
-    });
-  }, [readOnly, isDragging, editingAnnotation]);
 
   /**
    * Create a new annotation or update existing one
@@ -385,7 +360,6 @@ export default function SequenceViewer({
                 type={type}
                 showTranslation={showTranslation}
                 selection={normalizedSelection}
-                onBaseClick={handleBaseClick}
                 onBaseMouseDown={handleBaseMouseDown}
                 onBaseMouseEnter={handleBaseMouseEnter}
                 annotations={annotations}
@@ -424,7 +398,7 @@ export default function SequenceViewer({
           {/* Help text */}
           {!readOnly && (
             <p className="mt-3 text-xs text-gray-500 px-1">
-              Drag across bases to select a region, or click twice to select start and end positions.
+              Drag across bases to select a region for annotation.
             </p>
           )}
           {error && (

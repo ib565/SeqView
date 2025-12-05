@@ -7,7 +7,6 @@ interface BaseProps {
   type: SequenceType;
   position: number;
   isSelected?: boolean;
-  onClick?: (position: number) => void;
   onMouseDown?: (position: number) => void;
   onMouseEnter?: (position: number) => void;
 }
@@ -22,7 +21,6 @@ export default function Base({
   type,
   position,
   isSelected = false,
-  onClick,
   onMouseDown,
   onMouseEnter,
 }: BaseProps) {
@@ -40,10 +38,6 @@ export default function Base({
       default:
         return 'text-gray-300';
     }
-  };
-
-  const handleClick = () => {
-    onClick?.(position);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -74,7 +68,6 @@ export default function Base({
   return (
     <span
       className={baseClasses.join(' ')}
-      onClick={handleClick}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
       title={`Position ${position}`}

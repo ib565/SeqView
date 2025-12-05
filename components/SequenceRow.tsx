@@ -13,7 +13,6 @@ interface SequenceRowProps {
   type: SequenceType;
   showTranslation: boolean;
   selection: Selection;
-  onBaseClick: (position: number) => void;
   onBaseMouseDown: (position: number) => void;
   onBaseMouseEnter: (position: number) => void;
   annotations: Annotation[];
@@ -33,7 +32,6 @@ const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
       type,
       showTranslation,
       selection,
-      onBaseClick,
       onBaseMouseDown,
       onBaseMouseEnter,
       annotations,
@@ -62,7 +60,6 @@ const SequenceRow = forwardRef<HTMLDivElement, SequenceRowProps>(
                 type={type}
                 showTranslation={showTranslation}
                 selection={selection}
-                onBaseClick={onBaseClick}
                 onBaseMouseDown={onBaseMouseDown}
                 onBaseMouseEnter={onBaseMouseEnter}
               />

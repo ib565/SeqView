@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { validateSequence, ValidationResult } from '@/lib/sequenceUtils';
+import { validateSequence } from '@/lib/sequenceUtils';
+import { ValidationResult } from '@/types';
 
 interface SequenceInputProps {
   onSequenceSubmit: (sequence: string, type: 'DNA' | 'RNA') => void;

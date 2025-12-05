@@ -12,11 +12,11 @@
 
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
-| Framework | Next.js 15 (App Router) | Full-stack React, API routes, easy Vercel deploy |
+| Framework | Next.js 16 | Full-stack React, API routes, easy Vercel deploy |
 | Styling | Tailwind CSS | Fast iteration, utility-first |
 | Database | Supabase (PostgreSQL) | Free tier, real-time capable, easy setup |
 | Deployment | Vercel | Zero-config for Next.js |
-| Package Manager | pnpm | Fast, disk-efficient |
+| Package Manager | npm | Standard Node.js package manager |
 
 ## Overview
 
@@ -140,7 +140,7 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 ---
 
-### Stage 4: Persistence
+### Stage 4: Persistence ✅ COMPLETE
 
 **Goal:** Save sequences and annotations to a database.
 
@@ -150,14 +150,21 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 - Save annotations linked to sequence
 - Load sequence + annotations on page load via slug
 - Basic CRUD for annotations (edit, delete) — requires edit_token
+- Optional sequence name field on creation
+- Home page redirects to edit page after sequence creation
 
 **Out of scope:** Auth, comments.
 
 **Done when:** Refresh the page and your data is still there.
 
+**Implementation notes:**
+- Both view and edit pages are Client Components (fetch data client-side)
+- Edit token validation via header (`x-edit-token`) for annotation operations
+- Database types with conversion helpers between client and DB formats
+
 ---
 
-### Stage 5: Sharing
+### Stage 5: Sharing ✅ COMPLETE
 
 **Goal:** Share a sequence via URL with two access levels.
 
@@ -165,13 +172,20 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 - Two URLs per sequence:
   - **View URL**: `/view/{slug}` — read-only, safe to share publicly
   - **Edit URL**: `/edit/{token}` — full edit access, share only with collaborators
-- "Copy view link" and "Copy edit link" buttons
+- Compact "Share" button dropdown in top-right corner
+- Copy-to-clipboard functionality with visual feedback
 - Edit page shows both links; View page only shows view link
 - Short, URL-safe slugs (nanoid, ~10 chars)
+- Navigation: "Back to Homepage" button on both pages
 
 **Out of scope:** Permissions beyond view/edit, private sequences, expiring links.
 
 **Done when:** You can send a view URL to someone and they see your annotated sequence (read-only). Edit URL allows changes.
+
+**Implementation notes:**
+- ShareLinks component uses dropdown design to keep UI compact
+- Share links positioned top-right to keep viewer front and center
+- Copy functionality with fallback for browsers without clipboard API
 
 ---
 
@@ -212,23 +226,24 @@ Keep it normalized — sequences, annotations, and comments in separate tables w
 
 ---
 
-## API Shape (Rough, open to modification)
+## API Shape (Implemented)
 
 ```
 # Sequences
-GET    /api/sequences/:slug           → { sequence, annotations, comments }
-POST   /api/sequences                 → { view_slug, edit_token }
+GET    /api/sequences/:slug                    → { sequence, annotations }
+GET    /api/sequences/edit/:token              → { sequence, annotations }
+POST   /api/sequences                          → { view_slug, edit_token }
 
-# Annotations (require edit_token in body/header)
-POST   /api/annotations               → { annotation }
-PATCH  /api/annotations/:id           → { annotation }
-DELETE /api/annotations/:id           → { success }
+# Annotations (require edit_token in header: x-edit-token)
+POST   /api/annotations                        → { annotation }
+PATCH  /api/annotations/:id                    → { annotation }
+DELETE /api/annotations/:id                    → { success }
 
-# Comments (require edit_token for edit pages, optional author)
-POST   /api/comments                  → { comment }
+# Comments (not yet implemented)
+POST   /api/comments                           → { comment }
 ```
 
-**Note:** Edit operations validate the `edit_token` matches the sequence. View operations only need the `view_slug`.
+**Note:** Edit operations validate the `edit_token` via header (`x-edit-token`) and match it to the sequence. View operations only need the `view_slug`. Sequence creation accepts optional `name` field.
 
 ---
 
@@ -268,7 +283,7 @@ seqview/
 │   ├── AnnotationForm.tsx      # Create/edit annotation modal
 │   ├── AnnotationList.tsx      # Sidebar list of annotations
 │   ├── CommentPanel.tsx        # Comments sidebar/popover (TODO)
-│   └── ShareLinks.tsx          # Copy link buttons (TODO)
+│   └── ShareLinks.tsx          # Compact share links dropdown component
 │
 ├── lib/
 │   ├── supabase.ts             # Supabase client setup
@@ -290,16 +305,18 @@ seqview/
 
 ## Checklist
 
-- [ ] URL is accessible publicly
+- [ ] URL is accessible publicly (pending deployment)
 - [x] Can paste/input a sequence
 - [x] Sequence displays with position numbers
 - [x] Translation works (all three frames: 0, 1, 2)
 - [x] Can create annotations (drag or click to select region, add label/color)
 - [x] Can edit annotations (change label, color, type)
 - [x] Can delete annotations
-- [ ] Annotations persist across refresh
+- [x] Annotations persist across refresh
+- [x] Optional sequence name field
+- [x] Can share via URL (view and edit links)
+- [x] Navigation buttons (back to homepage)
 - [ ] Can add comments
-- [ ] Can share via URL
 - [x] Doesn't crash on edge cases (empty input, invalid characters)
 
 ---
@@ -310,6 +327,25 @@ seqview/
 - Document everything relevant in the README.md file
 - Test with real sequences (Google "example DNA sequence FASTA")
 - If stuck on UI, focus on functionality first
+
+## Implementation Status
+
+**Completed:**
+- ✅ Stage 1: Static Viewer
+- ✅ Stage 2: Translation
+- ✅ Stage 3: Annotations (Local)
+- ✅ Stage 4: Persistence (Supabase integration)
+- ✅ Stage 5: Sharing (URLs and copy functionality)
+
+**Remaining:**
+- ⏳ Stage 6: Comments
+- ⏳ Stage 7: Polish & Deploy
+
+**Key Implementation Details:**
+- All pages use Client Components for interactivity
+- Edit token validation via HTTP headers for security
+- Compact UI design keeps sequence viewer as primary focus
+- Share links use dropdown pattern to minimize UI footprint
 
 
 ## Exact task

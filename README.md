@@ -2,7 +2,7 @@
 
 A web platform for viewing, annotating, and sharing biological sequences. Paste DNA/RNA sequences, translate them to proteins, add annotations, and collaborate through comments.
 
-**Live Demo:** https://seq-view.vercel.app/
+**Live Demo:** [SeqView](https://seq-view.vercel.app/)
 
 ## Features
 

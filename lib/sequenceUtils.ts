@@ -71,6 +71,75 @@ export function validateSequence(input: string): ValidationResult {
 }
 
 /**
+ * Result of validating a FASTA input.
+ * Extends the normal ValidationResult with an optional name from the header.
+ */
+export interface FastaValidationResult extends ValidationResult {
+  nameFromHeader?: string;
+}
+
+/**
+ * Validates a FASTA input (single-record, first record only)
+ * - Uses first header line (if present) as optional name
+ * - Uses only the first record; subsequent records are ignored
+ * - Delegates sequence validation to validateSequence
+ */
+export function validateFasta(input: string): FastaValidationResult {
+  if (!input || input.trim().length === 0) {
+    return {
+      valid: false,
+      error: 'No sequence found in FASTA file',
+    };
+  }
+
+  const lines = input.split(/\r?\n/);
+
+  let header: string | undefined;
+  const sequenceLines: string[] = [];
+  let inFirstRecord = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    if (line.startsWith('>')) {
+      // Starting a header
+      if (!inFirstRecord && sequenceLines.length === 0) {
+        // First header, attach name and start first record
+        header = line.slice(1).trim() || undefined;
+        inFirstRecord = true;
+        continue;
+      }
+
+      // Any subsequent header means we're at the next record → stop
+      break;
+    }
+
+    // Sequence line
+    sequenceLines.push(line);
+    // Mark that we've started reading sequence for the first record
+    if (!inFirstRecord) {
+      inFirstRecord = true;
+    }
+  }
+
+  const rawSequence = sequenceLines.join('');
+
+  if (!rawSequence) {
+    return {
+      valid: false,
+      error: 'No sequence found in FASTA file',
+    };
+  }
+
+  const validation = validateSequence(rawSequence) as FastaValidationResult;
+  validation.nameFromHeader = header;
+  return validation;
+}
+
+/**
  * Splits a sequence into rows of specified length (default 60)
  */
 export function splitIntoRows(sequence: string, basesPerRow: number = 60): string[] {

@@ -15,7 +15,7 @@ A web platform for viewing, annotating, and sharing biological sequences. Paste 
 
 ## Tech Stack
 
-- **Framework**: Next.js 16
+- **Framework**: Next.js
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **Language**: TypeScript
@@ -25,10 +25,13 @@ A web platform for viewing, annotating, and sharing biological sequences. Paste 
 
 ### Creating a Sequence
 
-1. Paste a DNA or RNA sequence (A, T, G, C for DNA; A, U, G, C for RNA)
-2. Optionally add a name for the sequence
-3. Click "View Sequence"
-4. You'll be redirected to the edit page with a unique edit token
+1. **Paste a sequence**: Enter a DNA or RNA sequence (A, T, G, C for DNA; A, U, G, C for RNA) into the textarea  
+2. **Or upload FASTA**: Choose a `.fa`, `.fasta`, or `.txt` file in FASTA format  
+   - Only the **first record** in the file is used  
+   - If the record has a header line (e.g. `>My sequence`) and the name field is empty, the header is used as the default name  
+3. Optionally add a name for the sequence (or edit the auto-filled name from FASTA)
+4. Click "View Sequence"
+5. You'll be redirected to the edit page with a unique edit token
 
 ### Viewing Sequences
 
@@ -94,6 +97,5 @@ SeqView/
 - No authentication (edit tokens provide access control)
 - Comments are annotation-level only (no position-level comments)
 - No reverse complement support
-- No FASTA file upload (paste sequences directly)
 
 

@@ -2,7 +2,7 @@
 
 A web platform for viewing, annotating, and sharing biological sequences. Paste DNA/RNA sequences, translate them to proteins, add annotations, and collaborate through comments.
 
-**Live Demo:** [Deploy to Vercel for URL]
+**Live Demo:** https://seq-view.vercel.app/
 
 ## Features
 
@@ -15,89 +15,11 @@ A web platform for viewing, annotating, and sharing biological sequences. Paste 
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Next.js 16
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **Language**: TypeScript
-- **Deployment**: Vercel (recommended)
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- Supabase account (free tier works)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd SeqView
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up Supabase**
-   - Create a new Supabase project
-   - Run the following SQL in the SQL Editor:
-
-   ```sql
-   -- Sequences table
-   CREATE TABLE sequences (
-     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-     name TEXT,
-     nucleotides TEXT NOT NULL,
-     type TEXT NOT NULL CHECK (type IN ('DNA', 'RNA')),
-     view_slug TEXT NOT NULL UNIQUE,
-     edit_token TEXT NOT NULL UNIQUE,
-     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-   );
-
-   -- Annotations table
-   CREATE TABLE annotations (
-     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-     sequence_id UUID NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
-     start_pos INTEGER NOT NULL,
-     end_pos INTEGER NOT NULL,
-     label TEXT NOT NULL,
-     color TEXT NOT NULL,
-     type TEXT CHECK (type IN ('gene', 'promoter', 'CDS', 'misc')),
-     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-   );
-
-   -- Comments table
-   CREATE TABLE comments (
-     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-     annotation_id UUID NOT NULL REFERENCES annotations(id) ON DELETE CASCADE,
-     author TEXT NOT NULL DEFAULT 'Anonymous',
-     text TEXT NOT NULL,
-     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-   );
-
-   -- Indexes for performance
-   CREATE INDEX idx_annotations_sequence_id ON annotations(sequence_id);
-   CREATE INDEX idx_comments_annotation_id ON comments(annotation_id);
-   ```
-
-4. **Configure environment variables**
-   
-   Create a `.env.local` file:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-5. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+- **Deployment**: Vercel
 
 ## Usage
 
@@ -166,19 +88,6 @@ SeqView/
 - `POST /api/comments` - Create comment (requires `x-edit-token` header)
 - `DELETE /api/comments/:id` - Delete comment (requires `x-edit-token` header)
 
-## Deployment
-
-### Deploy to Vercel
-
-1. Push your code to GitHub
-2. Import the repository in Vercel
-3. Add environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy!
-
-The app will be available at `https://your-project.vercel.app`
-
 ## Limitations
 
 - Maximum sequence length: 100,000 bases
@@ -187,11 +96,4 @@ The app will be available at `https://your-project.vercel.app`
 - No reverse complement support
 - No FASTA file upload (paste sequences directly)
 
-## Contributing
-
-This is a personal project, but suggestions and improvements are welcome!
-
-## License
-
-MIT
 
